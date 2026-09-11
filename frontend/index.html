@@ -6,6 +6,20 @@
     <title>Personal Expense & Budget Tracker</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+    <script>
+        // Check local storage or system preference to apply dark theme before body renders
+        if (localStorage.getItem('finflow_theme') === 'dark' || 
+            (!('finflow_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,10 +29,10 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col">
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100 flex flex-col transition-colors duration-200">
 
     <!-- Header Navigation -->
-    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+    <header class="bg-slate-900 dark:bg-slate-950 text-white shadow-md sticky top-0 z-50 border-b dark:border-slate-800 transition-colors duration-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="bg-emerald-500 p-2 rounded-lg text-slate-900 shadow-inner">
@@ -32,12 +46,27 @@
                     <p class="text-xs text-slate-400">Personal Expense & Budget Tracker</p>
                 </div>
             </div>
-            <div class="text-sm font-medium bg-slate-800 px-4 py-2 rounded-full border border-slate-700 text-emerald-400 flex items-center space-x-2">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span>Active Ledger</span>
+            
+            <div class="flex items-center space-x-4">
+                <!-- Theme Toggle Button -->
+                <button id="themeToggleBtn" class="text-slate-400 hover:text-white transition-colors p-2 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 focus:outline-none flex items-center justify-center" title="Toggle Dark/Light Theme">
+                    <!-- Sun Icon (visible in dark mode) -->
+                    <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                    </svg>
+                    <!-- Moon Icon (visible in light mode) -->
+                    <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-355" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+
+                <div class="text-sm font-medium bg-slate-800 px-4 py-2 rounded-full border border-slate-700 text-emerald-400 flex items-center space-x-2">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>Active Ledger</span>
+                </div>
             </div>
         </div>
     </header>
@@ -48,102 +77,162 @@
         <!-- Alerts Notification Container -->
         <div id="alertContainer" class="hidden fixed bottom-5 right-5 z-50 space-y-2 max-w-sm"></div>
 
-        <!-- Dashboard / Analytics Grid -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Prominent warning banner for exceeded budget limits -->
+        <div id="budgetWarningBanner" class="hidden bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-4 flex items-center space-x-4 text-rose-800 dark:text-rose-400 animate-pulse transition-all duration-200">
+            <div class="bg-rose-100 dark:bg-rose-900/30 p-2 rounded-xl text-rose-600 dark:text-rose-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <div>
+                <p class="font-bold text-sm">Warning: Monthly Budget Exceeded!</p>
+                <p class="text-xs text-rose-600 dark:text-rose-500 mt-0.5">Your monthly spending has surpassed your database budget limit. Consider trimming expenses or raising your settings limit.</p>
+            </div>
+        </div>
+
+        <!-- Dashboard / Analytics Grid (expanded to 4 cards on desktop) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
             <!-- Card 1: Total Spent -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex items-center space-x-5 hover:shadow-md transition-shadow duration-300">
-                <div class="bg-emerald-100 p-4 rounded-xl text-emerald-600">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 flex items-center space-x-5 hover:shadow-md transition-all duration-200">
+                <div class="bg-emerald-100 dark:bg-emerald-950/40 p-4 rounded-xl text-emerald-600 dark:text-emerald-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-slate-400 uppercase tracking-wider">Total Spent</p>
-                    <h2 id="totalSpentText" class="text-3xl font-bold text-slate-900 mt-1">$0.00</h2>
-                    <p class="text-xs text-slate-400 mt-1">All-time tracked spend</p>
+                    <p class="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Spent</p>
+                    <h2 id="totalSpentText" class="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">$0.00</h2>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">All-time tracked spend</p>
                 </div>
             </div>
 
             <!-- Card 2: Budget Remaining -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex items-center space-x-5 hover:shadow-md transition-shadow duration-300 relative group">
-                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <div class="flex-grow">
-                    <div class="flex justify-between items-start">
-                        <p class="text-sm font-medium text-slate-400 uppercase tracking-wider">Remaining Budget</p>
-                        <!-- Inline Edit Budget Button -->
-                        <button id="editBudgetBtn" class="text-slate-400 hover:text-indigo-600 transition-colors p-1 rounded hover:bg-slate-50" title="Edit Budget Limit">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 hover:shadow-md transition-all duration-200 relative group flex flex-col justify-center min-h-[120px]">
+                <!-- Display Wrapper (hidden during edit to prevent squeezing) -->
+                <div class="flex items-center space-x-5 w-full" id="budgetDisplayWrapper">
+                    <div class="bg-indigo-100 dark:bg-indigo-950/40 p-4 rounded-xl text-indigo-600 dark:text-indigo-400 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                     </div>
-                    
-                    <div id="budgetDisplayContainer">
-                        <h2 id="budgetRemainingText" class="text-3xl font-bold text-slate-900 mt-1">$1,000.00</h2>
-                        <p class="text-xs text-slate-400 mt-1">Limit: <span id="budgetLimitText" class="font-medium text-slate-600">$1,000.00</span> / month</p>
-                    </div>
-
-                    <!-- Hidden Edit Form for Budget Limit -->
-                    <div id="budgetEditContainer" class="hidden mt-1 flex items-center space-x-2">
-                        <div class="relative rounded-md shadow-sm flex-grow">
-                            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                                <span class="text-slate-400 text-xs">$</span>
-                            </div>
-                            <input type="number" id="budgetLimitInput" class="block w-full pl-6 pr-2 py-1 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" min="1" step="50" placeholder="Limit">
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start">
+                            <p class="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Remaining Budget</p>
+                            <!-- Inline Edit Budget Button -->
+                            <button id="editBudgetBtn" class="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800" title="Edit Budget Limit">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </button>
                         </div>
-                        <button id="saveBudgetBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm transition-colors">Save</button>
-                        <button id="cancelBudgetBtn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors">Cancel</button>
+                        
+                        <div id="budgetDisplayContainer">
+                            <h2 id="budgetRemainingText" class="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">$2,000.00</h2>
+                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Limit: <span id="budgetLimitText" class="font-medium text-slate-600 dark:text-slate-300">$2,000.00</span> / month</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Full-Width Edit Form for Budget Limit (replaces side icon layout when editing to prevent squeezing!) -->
+                <div id="budgetEditContainer" class="hidden w-full flex flex-col space-y-3 animate-fadeIn">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Configure Monthly Limit</span>
+                        <span class="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">Settings DB</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="relative rounded-xl shadow-sm flex-grow">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <span class="text-slate-400 dark:text-slate-500 text-sm">$</span>
+                            </div>
+                            <input type="number" id="budgetLimitInput" class="block w-full pl-8 pr-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" min="1" step="50" placeholder="Limit">
+                        </div>
+                        <button id="saveBudgetBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md transition-colors shrink-0">Save</button>
+                        <button id="cancelBudgetBtn" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 transition-colors shrink-0">Cancel</button>
                     </div>
                 </div>
             </div>
 
             <!-- Card 3: Top Spending Category -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex items-center space-x-5 hover:shadow-md transition-shadow duration-300">
-                <div id="topCategoryIconBox" class="bg-amber-100 p-4 rounded-xl text-amber-600">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 flex items-center space-x-5 hover:shadow-md transition-all duration-200">
+                <div id="topCategoryIconBox" class="bg-amber-100 dark:bg-amber-950/40 p-4 rounded-xl text-amber-600 dark:text-amber-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-slate-400 uppercase tracking-wider">Top Category</p>
-                    <h2 id="topCategoryText" class="text-3xl font-bold text-slate-900 mt-1">None</h2>
-                    <p id="topCategorySpentText" class="text-xs text-slate-400 mt-1">No expenses recorded yet</p>
+                    <p class="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Top Category</p>
+                    <h2 id="topCategoryText" class="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">None</h2>
+                    <p id="topCategorySpentText" class="text-xs text-slate-400 dark:text-slate-500 mt-1">No expenses recorded yet</p>
+                </div>
+            </div>
+
+            <!-- Card 4: Recurring Subscriptions Projected Total -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 flex items-center space-x-5 hover:shadow-md transition-all duration-200">
+                <div class="bg-purple-100 dark:bg-purple-950/40 p-4 rounded-xl text-purple-600 dark:text-purple-400">
+                    <!-- Calendar Subscriptions icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Recurring Total</p>
+                    <h2 id="recurringSpentText" class="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">$0.00</h2>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Projected cost / month</p>
                 </div>
             </div>
         </section>
 
         <!-- Monthly Budget Progress Bar Component -->
-        <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-shadow duration-300">
+        <section class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 hover:shadow-md transition-all duration-200">
             <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-semibold text-slate-700 flex items-center space-x-1">
+                <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1">
                     <span>Monthly Spend Barometer</span>
-                    <span id="progressPercentBadge" class="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">0%</span>
+                    <span id="progressPercentBadge" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">0%</span>
+                    
+                    <!-- Progress Bar Edit Budget Limit Trigger Button -->
+                    <button id="progressBarEditBudgetBtn" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-850" title="Edit Budget Limit">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </button>
                 </span>
-                <span id="progressSummaryText" class="text-xs text-slate-500 font-medium">Spent: $0.00 / $1,000.00</span>
+                <span id="progressSummaryText" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Spent: $0.00 / $2,000.00</span>
             </div>
+
+            <!-- Inline Budget Limit Editor Area -->
+            <div id="progressBarBudgetEditContainer" class="hidden mb-3 p-3 bg-slate-50 dark:bg-slate-850 rounded-xl flex items-center justify-between space-x-3 border border-slate-100 dark:border-slate-800 animate-fadeIn">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Configure Monthly Limit:</span>
+                <div class="flex items-center space-x-2 flex-grow max-w-xs">
+                    <div class="relative rounded-md shadow-sm flex-grow">
+                        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                            <span class="text-slate-400 text-xs">$</span>
+                        </div>
+                        <input type="number" id="progressBarBudgetLimitInput" class="block w-full pl-6 pr-2 py-1 text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500" min="1" step="100">
+                    </div>
+                    <button id="progressBarSaveBudgetBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-md text-xs font-semibold transition-colors">Save</button>
+                    <button id="progressBarCancelBudgetBtn" class="bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors">Cancel</button>
+                </div>
+            </div>
+
             <!-- Progress Track -->
-            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
+            <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner">
                 <div id="budgetProgressBar" class="bg-emerald-500 h-full w-[0%] rounded-full transition-all duration-500 ease-out"></div>
             </div>
             <!-- Progress Status Caption -->
             <div class="flex justify-between items-center mt-2.5">
-                <p id="progressCaption" class="text-[11px] text-slate-400 font-medium">You are in a healthy spending range.</p>
-                <p class="text-[11px] text-slate-400">Updates dynamically</p>
+                <p id="progressCaption" class="text-[11px] text-slate-400 dark:text-slate-500 font-medium">You are in a healthy spending range.</p>
+                <p class="text-[11px] text-slate-400 dark:text-slate-500">Updates dynamically</p>
             </div>
         </section>
 
         <!-- Visual Insights Charts Section -->
         <section class="grid grid-cols-1 md:grid-cols-12 gap-6">
             <!-- Spending by Category Doughnut Card -->
-            <div class="md:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-shadow duration-300 flex flex-col">
+            <div class="md:col-span-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 hover:shadow-md transition-all duration-200 flex flex-col">
                 <div class="mb-4">
-                    <h3 class="text-base font-bold text-slate-900">Spending by Category</h3>
-                    <p class="text-xs text-slate-400">Total expense distribution</p>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Spending by Category</h3>
+                    <p class="text-xs text-slate-400 dark:text-slate-500">Total expense distribution</p>
                 </div>
                 <div class="flex-grow flex items-center justify-center relative min-h-[240px]">
                     <canvas id="categoryDoughnutChart"></canvas>
@@ -151,10 +240,10 @@
             </div>
 
             <!-- Monthly Trends Bar Card -->
-            <div class="md:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-shadow duration-300 flex flex-col">
+            <div class="md:col-span-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 hover:shadow-md transition-all duration-200 flex flex-col">
                 <div class="mb-4">
-                    <h3 class="text-base font-bold text-slate-900">Monthly Expense Trends</h3>
-                    <p class="text-xs text-slate-400">Daily spending trajectory for the current month</p>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Monthly Expense Trends</h3>
+                    <p class="text-xs text-slate-400 dark:text-slate-500">Daily spending trajectory for the current month</p>
                 </div>
                 <div class="flex-grow min-h-[240px] relative">
                     <canvas id="monthlyTrendBarChart"></canvas>
@@ -166,8 +255,8 @@
         <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             <!-- Left Column: Add New Expense Form (span 4/12) -->
-            <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sticky top-28">
-                <h3 class="text-lg font-bold text-slate-900 mb-5 flex items-center space-x-2">
+            <div class="lg:col-span-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 sticky top-28 transition-colors duration-200">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-5 flex items-center space-x-2">
                     <span class="text-emerald-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -179,68 +268,138 @@
                 <form id="expenseForm" class="space-y-4">
                     <!-- Title Input -->
                     <div>
-                        <label for="title" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Expense Title</label>
-                        <input type="text" id="title" required placeholder="e.g., Target grocery run" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-sm">
+                        <label for="title" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Expense Title</label>
+                        <input type="text" id="title" required placeholder="e.g., Target grocery run" class="w-full px-3.5 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-sm">
                     </div>
 
                     <!-- Amount Input -->
                     <div>
-                        <label for="amount" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Amount ($)</label>
+                        <label for="amount" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Amount ($)</label>
                         <div class="relative rounded-xl shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                 <span class="text-slate-400 text-sm">$</span>
                             </div>
-                            <input type="number" id="amount" required step="0.01" min="0.01" placeholder="0.00" class="w-full pl-8 pr-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-sm">
+                            <input type="number" id="amount" required step="0.01" min="0.01" placeholder="0.00" class="w-full pl-8 pr-3.5 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-sm">
                         </div>
                     </div>
 
                     <!-- Category Input -->
                     <div>
-                        <label for="category" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Category</label>
-                        <select id="category" required class="w-full px-3.5 py-2 border border-slate-200 bg-white rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-sm">
-                            <option value="" disabled selected>Select category...</option>
-                            <option value="Food">Food</option>
-                            <option value="Transport">Transport</option>
-                            <option value="Utilities">Utilities</option>
-                            <option value="Entertainment">Entertainment</option>
-                            <option value="Other">Other</option>
+                        <label for="category" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Category</label>
+                        <select id="category" required class="w-full px-3.5 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-sm">
+                            <option value="" disabled selected class="dark:bg-slate-850">Select category...</option>
+                            <option value="Food" class="dark:bg-slate-850">Food</option>
+                            <option value="Transport" class="dark:bg-slate-850">Transport</option>
+                            <option value="Utilities" class="dark:bg-slate-850">Utilities</option>
+                            <option value="Entertainment" class="dark:bg-slate-850">Entertainment</option>
+                            <option value="Other" class="dark:bg-slate-850">Other</option>
                         </select>
                     </div>
 
                     <!-- Date Input -->
                     <div>
-                        <label for="date" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Date</label>
-                        <input type="date" id="date" required class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-sm">
+                        <label for="date" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
+                        <input type="date" id="date" required class="w-full px-3.5 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-sm">
+                    </div>
+
+                    <!-- Recurring Subscription Option -->
+                    <div class="border-t border-slate-100 dark:border-slate-800/60 pt-4 mt-3">
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="isRecurring" class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-emerald-500 focus:ring-emerald-500/20 bg-white dark:bg-slate-800 cursor-pointer">
+                            <label for="isRecurring" class="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer select-none">Is this a recurring subscription?</label>
+                        </div>
+                        
+                        <!-- Conditionally visible Billing Frequency selector -->
+                        <div id="subscriptionFrequencyContainer" class="hidden mt-3 animate-fadeIn duration-150">
+                            <label for="subscriptionFrequency" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Billing Frequency</label>
+                            <select id="subscriptionFrequency" class="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+                                <option value="Monthly" selected>Monthly Billing</option>
+                                <option value="Weekly">Weekly Billing</option>
+                                <option value="Yearly">Yearly Billing</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" class="w-full bg-slate-950 hover:bg-slate-850 text-white font-semibold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm">
+                    <button type="submit" class="w-full bg-slate-950 dark:bg-slate-100 hover:bg-slate-850 dark:hover:bg-slate-200 text-white dark:text-slate-950 font-semibold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm">
                         <span>Save Ledger Entry</span>
                     </button>
                 </form>
             </div>
 
             <!-- Right Column: Ledger List (span 8/12) -->
-            <div class="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 min-h-[500px] flex flex-col">
+            <div class="lg:col-span-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 min-h-[500px] flex flex-col transition-colors duration-200">
                 
                 <!-- Ledger Header and Filtering controls -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-5 mb-5 border-b border-slate-100 space-y-4 sm:space-y-0">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-5 mb-5 border-b border-slate-100 dark:border-slate-800 space-y-4 sm:space-y-0">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">Ledger Statement</h3>
-                        <p class="text-xs text-slate-400">Statement of documented expense entries</p>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">Ledger Statement</h3>
+                        <p class="text-xs text-slate-400 dark:text-slate-500">Statement of documented expense entries</p>
                     </div>
-                    
-                    <!-- Filters -->
-                    <div class="flex items-center space-x-3 w-full sm:w-auto">
-                        <label for="categoryFilter" class="text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Filter</label>
-                        <select id="categoryFilter" class="w-full sm:w-44 px-3 py-1.5 border border-slate-200 bg-white rounded-xl text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all duration-200">
-                            <option value="All">All Categories</option>
-                            <option value="Food">Food</option>
-                            <option value="Transport">Transport</option>
-                            <option value="Utilities">Utilities</option>
-                            <option value="Entertainment">Entertainment</option>
-                            <option value="Other">Other</option>
+                </div>
+
+                <!-- Unified Filter Bar -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 pb-5 mb-5 border-b border-slate-100 dark:border-slate-800 items-end">
+                    <!-- Search Input (span 4/12) -->
+                    <div class="sm:col-span-4">
+                        <label for="searchFilter" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Search Title</label>
+                        <div class="relative rounded-xl shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input type="text" id="searchFilter" placeholder="Type to search..." class="w-full pl-9 pr-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-100 text-xs placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150">
+                        </div>
+                    </div>
+
+                    <!-- Category Filter (span 3/12) -->
+                    <div class="sm:col-span-3">
+                        <label for="categoryFilter" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Category</label>
+                        <select id="categoryFilter" class="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-750 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-500 transition-all duration-150">
+                            <option value="All" class="dark:bg-slate-850">All Categories</option>
+                            <option value="Food" class="dark:bg-slate-850">Food</option>
+                            <option value="Transport" class="dark:bg-slate-850">Transport</option>
+                            <option value="Utilities" class="dark:bg-slate-850">Utilities</option>
+                            <option value="Entertainment" class="dark:bg-slate-850">Entertainment</option>
+                            <option value="Other" class="dark:bg-slate-850">Other</option>
                         </select>
+                    </div>
+
+                    <!-- From Date (span 2/12) -->
+                    <div class="sm:col-span-2">
+                        <label for="startDateFilter" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">From Date</label>
+                        <div class="relative rounded-xl shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input type="date" id="startDateFilter" class="w-full pl-9 pr-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-750 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-500 transition-all duration-150">
+                        </div>
+                    </div>
+
+                    <!-- To Date (span 2/12) -->
+                    <div class="sm:col-span-2">
+                        <label for="endDateFilter" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">To Date</label>
+                        <div class="relative rounded-xl shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input type="date" id="endDateFilter" class="w-full pl-9 pr-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-750 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-500 transition-all duration-150">
+                        </div>
+                    </div>
+
+                    <!-- Reset Button (span 1/12) -->
+                    <div class="sm:col-span-1">
+                        <label class="block text-[10px] font-bold text-transparent select-none mb-1.5">Reset</label>
+                        <button id="clearFiltersBtn" class="w-full h-8 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl border border-slate-200 dark:border-slate-700 transition-all duration-150 flex items-center justify-center" title="Reset Filters">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -248,29 +407,29 @@
                 <div class="flex-grow overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-slate-100">
-                                <th class="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Expense Details</th>
-                                <th class="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Category</th>
-                                <th class="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
-                                <th class="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Amount</th>
-                                <th class="pb-3 text-xs font-bold text-slate-400 uppercase tracking-wider text-center w-16">Action</th>
+                            <tr class="border-b border-slate-100 dark:border-slate-800">
+                                <th class="pb-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Expense Details</th>
+                                <th class="pb-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-center">Category</th>
+                                <th class="pb-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Date</th>
+                                <th class="pb-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Amount</th>
+                                <th class="pb-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-center w-16">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="expenseTableBody" class="divide-y divide-slate-50 text-sm">
+                        <tbody id="expenseTableBody" class="divide-y divide-slate-50 dark:divide-slate-800/40 text-sm">
                             <!-- Populated Dynamically with Javascript -->
                         </tbody>
                     </table>
 
                     <!-- Empty Ledger Illustration -->
                     <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-center space-y-4">
-                        <div class="bg-slate-100 p-5 rounded-full text-slate-400">
+                        <div class="bg-slate-100 dark:bg-slate-800 p-5 rounded-full text-slate-400 dark:text-slate-500">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
                         </div>
                         <div>
-                            <h4 class="text-sm font-semibold text-slate-700">No records found</h4>
-                            <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">There are no documented ledger records matches the selected filter.</p>
+                            <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-300">No records found</h4>
+                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xs mx-auto">There are no documented ledger records matches the selected filter.</p>
                         </div>
                     </div>
                 </div>
@@ -293,10 +452,14 @@
             analytics: {
                 total_spent: 0.0,
                 monthly_spent: 0.0,
-                top_category: null
+                top_category: null,
+                budget_limit: 2000.0
             },
-            budgetLimit: 1000.0,
-            activeFilter: 'All'
+            budgetLimit: 2000.0,
+            activeFilter: 'All',
+            searchQuery: '',
+            startDate: '',
+            endDate: ''
         };
 
         // Chart.js instances
@@ -325,26 +488,53 @@
         const topCategoryText = document.getElementById('topCategoryText');
         const topCategorySpentText = document.getElementById('topCategorySpentText');
         const topCategoryIconBox = document.getElementById('topCategoryIconBox');
+        const recurringSpentText = document.getElementById('recurringSpentText');
         
+        // Theme selectors
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+        
+        // Progress selectors
         const progressPercentBadge = document.getElementById('progressPercentBadge');
         const progressSummaryText = document.getElementById('progressSummaryText');
         const budgetProgressBar = document.getElementById('budgetProgressBar');
         const progressCaption = document.getElementById('progressCaption');
+        const budgetWarningBanner = document.getElementById('budgetWarningBanner');
 
+        // Card budget edit selectors
         const editBudgetBtn = document.getElementById('editBudgetBtn');
         const budgetDisplayContainer = document.getElementById('budgetDisplayContainer');
         const budgetEditContainer = document.getElementById('budgetEditContainer');
         const budgetLimitInput = document.getElementById('budgetLimitInput');
         const saveBudgetBtn = document.getElementById('saveBudgetBtn');
         const cancelBudgetBtn = document.getElementById('cancelBudgetBtn');
+        const budgetDisplayWrapper = document.getElementById('budgetDisplayWrapper');
 
+        // Bar budget edit selectors
+        const progressBarEditBudgetBtn = document.getElementById('progressBarEditBudgetBtn');
+        const progressBarBudgetEditContainer = document.getElementById('progressBarBudgetEditContainer');
+        const progressBarBudgetLimitInput = document.getElementById('progressBarBudgetLimitInput');
+        const progressBarSaveBudgetBtn = document.getElementById('progressBarSaveBudgetBtn');
+        const progressBarCancelBudgetBtn = document.getElementById('progressBarCancelBudgetBtn');
+
+        // Form selectors
         const expenseForm = document.getElementById('expenseForm');
         const titleInput = document.getElementById('title');
         const amountInput = document.getElementById('amount');
         const categoryInput = document.getElementById('category');
         const dateInput = document.getElementById('date');
+        const isRecurring = document.getElementById('isRecurring');
+        const subscriptionFrequencyContainer = document.getElementById('subscriptionFrequencyContainer');
+        const subscriptionFrequency = document.getElementById('subscriptionFrequency');
 
+        // Filter selectors
         const categoryFilter = document.getElementById('categoryFilter');
+        const searchFilter = document.getElementById('searchFilter');
+        const startDateFilter = document.getElementById('startDateFilter');
+        const endDateFilter = document.getElementById('endDateFilter');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        
         const expenseTableBody = document.getElementById('expenseTableBody');
         const emptyState = document.getElementById('emptyState');
         const alertContainer = document.getElementById('alertContainer');
@@ -355,45 +545,159 @@
             const today = new Date().toISOString().split('T')[0];
             dateInput.value = today;
 
-            // Load stored budget limit from localStorage if exists
-            const savedLimit = localStorage.getItem('finflow_budget_limit');
-            if (savedLimit) {
-                state.budgetLimit = parseFloat(savedLimit) || 1000.0;
-            } else {
-                localStorage.setItem('finflow_budget_limit', state.budgetLimit);
-            }
+            // Load stored budget limit values as safe defaults (re-synced with SQLite settings)
             budgetLimitInput.value = state.budgetLimit;
+            progressBarBudgetLimitInput.value = state.budgetLimit;
+
+            // Update theme toggle UI on initial load
+            updateThemeToggleUI();
+
+            // Hook up theme toggle event
+            themeToggleBtn.addEventListener('click', toggleTheme);
+
+            // Toggle billing frequency select based on checkbox
+            isRecurring.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    subscriptionFrequencyContainer.classList.remove('hidden');
+                } else {
+                    subscriptionFrequencyContainer.classList.add('hidden');
+                }
+            });
+
+            // Card budget edit events
+            editBudgetBtn.addEventListener('click', () => {
+                budgetLimitInput.value = state.budgetLimit;
+                budgetDisplayWrapper.classList.add('hidden');
+                budgetEditContainer.classList.remove('hidden');
+                budgetLimitInput.focus();
+            });
+
+            cancelBudgetBtn.addEventListener('click', () => {
+                budgetDisplayWrapper.classList.remove('hidden');
+                budgetEditContainer.classList.add('hidden');
+            });
+
+            saveBudgetBtn.addEventListener('click', async () => {
+                const newLimit = parseFloat(budgetLimitInput.value);
+                if (isNaN(newLimit) || newLimit <= 0) {
+                    showAlert('Please provide a positive budget limit.', 'error');
+                    return;
+                }
+                budgetDisplayWrapper.classList.remove('hidden');
+                budgetEditContainer.classList.add('hidden');
+                await pushBudgetLimitUpdate(newLimit);
+            });
+
+            // Progress bar budget edit events
+            progressBarEditBudgetBtn.addEventListener('click', () => {
+                progressBarBudgetLimitInput.value = state.budgetLimit;
+                progressBarBudgetEditContainer.classList.remove('hidden');
+                progressBarBudgetLimitInput.focus();
+            });
+
+            progressBarCancelBudgetBtn.addEventListener('click', () => {
+                progressBarBudgetEditContainer.classList.add('hidden');
+            });
+
+            progressBarSaveBudgetBtn.addEventListener('click', async () => {
+                const newLimit = parseFloat(progressBarBudgetLimitInput.value);
+                if (isNaN(newLimit) || newLimit <= 0) {
+                    showAlert('Please provide a positive budget limit.', 'error');
+                    return;
+                }
+                progressBarBudgetEditContainer.classList.add('hidden');
+                await pushBudgetLimitUpdate(newLimit);
+            });
+
+            // Hook up Filter Bar listeners
+            let searchDebounceTimer;
+            searchFilter.addEventListener('input', (e) => {
+                state.searchQuery = e.target.value.trim();
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(() => {
+                    fetchExpenses();
+                }, 250);
+            });
+
+            startDateFilter.addEventListener('change', (e) => {
+                state.startDate = e.target.value;
+                fetchExpenses();
+            });
+
+            endDateFilter.addEventListener('change', (e) => {
+                state.endDate = e.target.value;
+                fetchExpenses();
+            });
+
+            clearFiltersBtn.addEventListener('click', () => {
+                // Reset state variables
+                state.activeFilter = 'All';
+                state.searchQuery = '';
+                state.startDate = '';
+                state.endDate = '';
+
+                // Reset filter DOM control values
+                categoryFilter.value = 'All';
+                searchFilter.value = '';
+                startDateFilter.value = '';
+                endDateFilter.value = '';
+
+                fetchExpenses();
+                showAlert('All active filters cleared.', 'success');
+            });
 
             // Fetch primary database records
             fetchData();
         });
 
-        // Toggle budget editing mode
-        editBudgetBtn.addEventListener('click', () => {
-            budgetLimitInput.value = state.budgetLimit;
-            budgetDisplayContainer.classList.add('hidden');
-            budgetEditContainer.classList.remove('hidden');
-            budgetLimitInput.focus();
-        });
-
-        cancelBudgetBtn.addEventListener('click', () => {
-            budgetDisplayContainer.classList.remove('hidden');
-            budgetEditContainer.classList.add('hidden');
-        });
-
-        saveBudgetBtn.addEventListener('click', () => {
-            const newLimit = parseFloat(budgetLimitInput.value);
-            if (isNaN(newLimit) || newLimit <= 0) {
-                showAlert('Please provide a positive budget limit.', 'error');
-                return;
+        // Theme Toggle Handlers
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('finflow_theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('finflow_theme', 'dark');
             }
-            state.budgetLimit = newLimit;
-            localStorage.setItem('finflow_budget_limit', newLimit);
-            budgetDisplayContainer.classList.remove('hidden');
-            budgetEditContainer.classList.add('hidden');
-            renderAnalytics();
-            showAlert('Budget limit updated successfully!', 'success');
-        });
+            updateThemeToggleUI();
+            
+            // Re-render and redraw charts to adapt their grid colors to the current theme!
+            updateCharts();
+        }
+
+        function updateThemeToggleUI() {
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        // DB Settings Updater: push new budget limit to settings database
+        async function pushBudgetLimitUpdate(newLimit) {
+            try {
+                const res = await fetch('/api/settings/budget', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ budget_limit: newLimit })
+                });
+
+                if (!res.ok) throw new Error('Settings update failed on database backend');
+                const data = await res.json();
+                
+                // Reload analytics to recalculate barometer progress metrics and displays
+                await fetchAnalytics();
+                showAlert('Monthly budget limit successfully updated in settings database!', 'success');
+
+            } catch (err) {
+                console.error(err);
+                showAlert('Could not persist budget settings update.', 'error');
+            }
+        }
 
         // Filter trigger
         categoryFilter.addEventListener('change', (e) => {
@@ -401,7 +705,7 @@
             fetchExpenses();
         });
 
-        // Submit Entry form handler
+        // Submit Entry form handler (supporting Subscriptions)
         expenseForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -409,7 +713,9 @@
                 title: titleInput.value.trim(),
                 amount: parseFloat(amountInput.value),
                 category: categoryInput.value,
-                date: dateInput.value
+                date: dateInput.value,
+                is_recurring: isRecurring.checked,
+                frequency: isRecurring.checked ? subscriptionFrequency.value : null
             };
 
             // Client Validation
@@ -451,6 +757,9 @@
                 titleInput.value = '';
                 amountInput.value = '';
                 categoryInput.selectedIndex = 0;
+                isRecurring.checked = false;
+                subscriptionFrequencyContainer.classList.add('hidden');
+                subscriptionFrequency.selectedIndex = 0;
                 
                 // Reload states
                 fetchData();
@@ -464,7 +773,8 @@
         async function fetchData() {
             await Promise.all([
                 fetchExpenses(),
-                fetchAnalytics()
+                fetchAnalytics(),
+                fetchSubscriptions()
             ]);
         }
 
@@ -475,6 +785,10 @@
                 if (!res.ok) throw new Error('Analytical retrieval failed');
                 const data = await res.json();
                 state.analytics = data;
+                
+                // Sync state budget limit directly with backend DB configurations
+                state.budgetLimit = data.budget_limit || 2000.0;
+                
                 renderAnalytics();
             } catch (err) {
                 console.error(err);
@@ -482,12 +796,37 @@
             }
         }
 
-        // Fetch list records
+        // Fetch subscriptions recurring projected monthly cost
+        async function fetchSubscriptions() {
+            try {
+                const res = await fetch('/api/subscriptions');
+                if (!res.ok) throw new Error('Subscriptions retrieval failed');
+                const data = await res.json();
+                recurringSpentText.textContent = formatCurrency(data.projected_monthly_cost);
+            } catch (err) {
+                console.error(err);
+                showAlert('Unable to load recurring subscription projection.', 'error');
+            }
+        }
+
+        // Fetch list records (supporting active dynamic query filtering)
         async function fetchExpenses() {
             try {
-                const url = state.activeFilter === 'All' 
-                    ? '/api/expenses' 
-                    : `/api/expenses?category=${encodeURIComponent(state.activeFilter)}`;
+                const params = new URLSearchParams();
+                if (state.activeFilter !== 'All') {
+                    params.append('category', state.activeFilter);
+                }
+                if (state.searchQuery) {
+                    params.append('search', state.searchQuery);
+                }
+                if (state.startDate) {
+                    params.append('start_date', state.startDate);
+                }
+                if (state.endDate) {
+                    params.append('end_date', state.endDate);
+                }
+
+                const url = '/api/expenses?' + params.toString();
                 
                 const res = await fetch(url);
                 if (!res.ok) throw new Error('Ledger list retrieval failed');
@@ -512,11 +851,15 @@
             budgetLimitText.textContent = formatCurrency(state.budgetLimit);
             budgetRemainingText.textContent = formatCurrency(remainingBudget);
 
-            // If budget breached, transition indicator colors to warn
+            // Keep edit inputs in sync
+            budgetLimitInput.value = state.budgetLimit;
+            progressBarBudgetLimitInput.value = state.budgetLimit;
+
+            // If budget breached, transition remaining text colors to alert
             if (remainingBudget < 0) {
                 budgetRemainingText.className = "text-3xl font-bold text-rose-600 mt-1 animate-pulse";
             } else {
-                budgetRemainingText.className = "text-3xl font-bold text-slate-900 mt-1";
+                budgetRemainingText.className = "text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1";
             }
 
             // Top category rendering
@@ -545,22 +888,31 @@
             progressPercentBadge.textContent = `${percent}%`;
             progressSummaryText.textContent = `Spent: ${formatCurrency(monthlySpent)} / ${formatCurrency(state.budgetLimit)}`;
 
-            // Color-code and label based on threshold rules
-            if (percent >= 90) {
+            // Color-code progress bar and trigger prominent warning banners based on thresholds
+            if (percent >= 100) {
                 budgetProgressBar.className = "bg-rose-500 h-full rounded-full transition-all duration-500 ease-out";
-                progressPercentBadge.className = "bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2";
-                progressCaption.textContent = "Critical alert: Budget limits breached or near exhaustion!";
-                progressCaption.className = "text-[11px] text-rose-600 font-semibold";
-            } else if (percent >= 75) {
+                progressPercentBadge.className = "bg-rose-105 bg-rose-100 dark:bg-rose-950/20 text-rose-800 dark:text-rose-400 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2";
+                progressCaption.textContent = "Warning: Monthly Budget Exceeded!";
+                progressCaption.className = "text-[11px] text-rose-600 dark:text-rose-400 font-bold";
+                
+                // Show critical budget breached warning banner
+                budgetWarningBanner.classList.remove('hidden');
+            } else if (percent >= 80) {
                 budgetProgressBar.className = "bg-amber-500 h-full rounded-full transition-all duration-500 ease-out";
-                progressPercentBadge.className = "bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2";
-                progressCaption.textContent = "Cautionary warning: Approaching budget limitations.";
-                progressCaption.className = "text-[11px] text-amber-600 font-semibold";
+                progressPercentBadge.className = "bg-amber-105 bg-amber-100 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2";
+                progressCaption.textContent = "Cautionary warning: Monthly spending has reached over 80% of budget limit.";
+                progressCaption.className = "text-[11px] text-amber-600 dark:text-amber-400 font-semibold";
+                
+                // Hide warning banner
+                budgetWarningBanner.classList.add('hidden');
             } else {
                 budgetProgressBar.className = "bg-emerald-500 h-full rounded-full transition-all duration-500 ease-out";
-                progressPercentBadge.className = "bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2";
+                progressPercentBadge.className = "bg-emerald-105 bg-emerald-100 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2";
                 progressCaption.textContent = "Healthy spending posture maintained this month.";
-                progressCaption.className = "text-[11px] text-slate-400 font-medium";
+                progressCaption.className = "text-[11px] text-slate-400 dark:text-slate-500 font-medium";
+                
+                // Hide warning banner
+                budgetWarningBanner.classList.add('hidden');
             }
         }
 
@@ -578,7 +930,7 @@
 
             state.expenses.forEach(item => {
                 const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50 transition-colors group border-b border-slate-50";
+                row.className = "hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group border-b border-slate-50 dark:border-slate-800/40";
 
                 // Escaped elements for XSS mitigation
                 const titleEscaped = escapeHtml(item.title);
@@ -586,23 +938,40 @@
                 const amountFormatted = formatCurrency(item.amount);
                 const categoryClass = getCategoryBadgeClass(item.category);
 
+                // Subscription Badge renderer
+                let recurringBadgeHtml = '';
+                if (item.is_recurring) {
+                    recurringBadgeHtml = `
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30 ml-2" title="Active Subscription: ${escapeHtml(item.frequency)}">
+                            <span class="relative flex h-1.5 w-1.5 mr-1.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500"></span>
+                            </span>
+                            ${escapeHtml(item.frequency)}
+                        </span>
+                    `;
+                }
+
                 row.innerHTML = `
-                    <td class="py-3 px-1 font-medium text-slate-800 max-w-[200px] truncate" title="${titleEscaped}">
-                        ${titleEscaped}
+                    <td class="py-3 px-1 font-medium text-slate-800 dark:text-slate-200 max-w-[200px] truncate" title="${titleEscaped}">
+                        <div class="flex items-center">
+                            <span class="truncate">${titleEscaped}</span>
+                            ${recurringBadgeHtml}
+                        </div>
                     </td>
                     <td class="py-3 text-center">
                         <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold border ${categoryClass}">
                             ${escapeHtml(item.category)}
                         </span>
                     </td>
-                    <td class="py-3 text-slate-500 text-xs">
+                    <td class="py-3 text-slate-500 dark:text-slate-400 text-xs">
                         ${dateFormatted}
                     </td>
-                    <td class="py-3 text-right font-bold text-slate-900">
+                    <td class="py-3 text-right font-bold text-slate-900 dark:text-slate-100">
                         ${amountFormatted}
                     </td>
                     <td class="py-3 text-center">
-                        <button onclick="handleDelete(${item.id})" class="text-slate-400 hover:text-rose-600 transition-colors p-1.5 rounded-lg hover:bg-rose-50" title="Delete record">
+                        <button onclick="handleDelete(${item.id})" class="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30" title="Delete record">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -641,6 +1010,8 @@
                 categoryChartInstance.destroy();
             }
 
+            const isDark = document.documentElement.classList.contains('dark');
+
             // Render empty state placeholder if no active ledger data
             if (labels.length === 0) {
                 categoryChartInstance = new Chart(ctx, {
@@ -649,8 +1020,8 @@
                         labels: ['No Data Available'],
                         datasets: [{
                             data: [1],
-                            backgroundColor: ['rgba(226, 232, 240, 0.6)'],
-                            borderColor: ['#cbd5e1'],
+                            backgroundColor: [isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.6)'],
+                            borderColor: [isDark ? '#334155' : '#cbd5e1'],
                             borderWidth: 1
                         }]
                     },
@@ -661,7 +1032,10 @@
                             legend: {
                                 display: true,
                                 position: 'bottom',
-                                labels: { font: { size: 10, family: "'Inter', sans-serif" } }
+                                labels: { 
+                                    color: isDark ? '#94a3b8' : '#64748b',
+                                    font: { size: 10, family: "'Inter', sans-serif" } 
+                                }
                             },
                             tooltip: { enabled: false }
                         }
@@ -694,6 +1068,7 @@
                             display: true,
                             position: 'bottom',
                             labels: {
+                                color: isDark ? '#cbd5e1' : '#475569',
                                 boxWidth: 12,
                                 padding: 12,
                                 font: { size: 10, family: "'Inter', sans-serif" }
@@ -747,6 +1122,10 @@
             }
 
             const monthName = now.toLocaleString('en-US', { month: 'long' });
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(241, 245, 249, 1)';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+            const legendColor = isDark ? '#cbd5e1' : '#334155';
 
             trendChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -768,15 +1147,19 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: { color: 'rgba(241, 245, 249, 1)' },
+                            grid: { color: gridColor },
                             ticks: {
+                                color: textColor,
                                 font: { family: "'Inter', sans-serif", size: 9 },
                                 callback: function(value) { return '$' + value; }
                             }
                         },
                         x: {
                             grid: { display: false },
-                            ticks: { font: { family: "'Inter', sans-serif", size: 9 } }
+                            ticks: {
+                                color: textColor,
+                                font: { family: "'Inter', sans-serif", size: 9 }
+                            }
                         }
                     },
                     plugins: {
@@ -784,6 +1167,7 @@
                             display: true,
                             position: 'top',
                             labels: {
+                                color: legendColor,
                                 boxWidth: 12,
                                 font: { size: 10, family: "'Inter', sans-serif" }
                             }
@@ -839,15 +1223,15 @@
         function getCategoryBadgeClass(cat) {
             switch(cat) {
                 case 'Food': 
-                    return 'bg-orange-50 text-orange-800 border-orange-100';
+                    return 'bg-orange-50 dark:bg-orange-950/20 text-orange-800 dark:text-orange-400 border-orange-100 dark:border-orange-900/30';
                 case 'Transport': 
-                    return 'bg-indigo-50 text-indigo-800 border-indigo-100';
+                    return 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-800 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30';
                 case 'Utilities': 
-                    return 'bg-amber-50 text-amber-850 border-amber-100';
+                    return 'bg-amber-50 dark:bg-amber-950/20 text-amber-850 dark:text-amber-400 border-amber-100 dark:border-amber-900/30';
                 case 'Entertainment': 
-                    return 'bg-purple-50 text-purple-800 border-purple-100';
+                    return 'bg-purple-50 dark:bg-purple-950/20 text-purple-800 dark:text-purple-400 border-purple-100 dark:border-purple-900/30';
                 default: 
-                    return 'bg-slate-50 text-slate-800 border-slate-100';
+                    return 'bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-300 border-slate-100 dark:border-slate-800';
             }
         }
 
@@ -857,19 +1241,19 @@
             const alert = document.createElement('div');
             
             const isSuccess = type === 'success';
-            const bgClass = isSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800';
+            const bgClass = isSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-500/10' : 'bg-rose-50 border-rose-200 text-rose-800 shadow-rose-500/10';
             const iconSvg = isSuccess 
-                ? '<svg class="h-5 w-5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
-                : '<svg class="h-5 w-5 text-rose-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>';
+                ? '<svg class="h-5 w-5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
+                : '<svg class="h-5 w-5 text-rose-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>';
 
             alert.id = id;
-            alert.className = `flex items-start p-4 border rounded-xl shadow-lg ${bgClass} transform transition-all duration-300 translate-y-2 opacity-0`;
+            alert.className = `flex items-start p-4 border rounded-xl shadow-lg ${bgClass} transform transition-all duration-300 translate-y-2 opacity-0 dark:bg-slate-900 dark:border-slate-800`;
             alert.innerHTML = `
                 <div class="flex-shrink-0">${iconSvg}</div>
                 <div class="ml-3 flex-grow">
-                    <p class="text-xs font-semibold">${escapeHtml(msg)}</p>
+                    <p class="text-xs font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(msg)}</p>
                 </div>
-                <button onclick="dismissAlert('${id}')" class="ml-auto text-slate-400 hover:text-slate-600 p-0.5">
+                <button onclick="dismissAlert('${id}')" class="ml-auto text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-0.5">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             `;
